@@ -1,0 +1,19 @@
+
+# Current objectives by current priority:
+
+
+0. How to use cluster
+1. Implement autoencoder algorithm
+1.1 Implement Error reconstruction function
+1.2 Learn how to use something like weights and biases or simply put them in a .txt, idk
+2. Train autoencoder algorithm on healthy patients Cropped dataset
+2.2 Once again store the weights and biases
+3. Implement Adaptative thresholding
+4. Implement Roc function visualizer
+5. See how good we did (given the mixed dataset (annotated), use the AE & adaptative thresholdign algorithms).
+   Then display
+
+6. Implement classifier
+6.......  
+
+7. Document and presentation
