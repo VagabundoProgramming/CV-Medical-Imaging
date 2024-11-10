@@ -10,6 +10,10 @@ from torch.utils.data import DataLoader
 from load_data import *
 from metrics import *
 
+### GPU & Model & Initialize
+#device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+#print("Using device:", device)
+
 # Give a path to a model file if we don't want to train another one.
 # Change to None if we want to train the model
 model_name = None
@@ -41,11 +45,7 @@ test_dataset  = Cropped_Patches(test_set)
 train_loader = DataLoader(train_dataset, batch_size = 20, shuffle = True)
 test_loader  = DataLoader(test_dataset, batch_size = 20, shuffle = False)
 
-### GPU & Model & Initialize
-#device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-#print("Using device:", device)
-
-# Model
+### Model
 class M_model(nn.Module):
     def __init__(self):
         super().__init__()
