@@ -8,10 +8,17 @@
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from load_data import *
+from metrics import *
 
 # Give a path to a model file if we don't want to train another one.
 # Change to None if we want to train the model
-model_name = None #"model_parameters_30.pt"
+model_name = None
+
+# If false it will skip training and training related data
+do_training = True
+
+# Define number of epochs
+n_epochs = 70
 
 ### Load data and clean it up ###
 data_path = "Data\\"
@@ -73,11 +80,11 @@ def start_model(model_name = None):
         model = M_model()#.to(device)
     else:
         model = torch.load(f"Models/{model_name}")#.to(device)
-    loss = nn.CrossEntropyLoss()
+    loss_fn = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters())
-    return model, loss, optimizer
+    return model, loss_fn, optimizer
 
-model, loss, optimizer = start_model(model_name = model_name) 
+model, loss_fn, optimizer = start_model(model_name = model_name) 
 
 ### Define Train and Test
 def train(dataloader, model, loss_fn, optimizer, threshold = 0.5):
@@ -129,43 +136,42 @@ def test (dataloader, model, loss_fn):
     test_loss /= num_batches
     correct /=size
     print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>0.8f} \n")
-    return test_loss
+    return test_loss, correct
 
 ### Train loop
 def train_loop(n_epochs, model, loss, optimizer):
     loss_l = []
+    acc_l = []
 
     # Do n epochs
     for ep in range(n_epochs):
         print(f"Epoch {ep+1}: \n")
         train(train_loader, model, loss, optimizer)
-        loss_l.append(test(test_loader, model, loss))
+        holder = test(test_loader, model, loss)
+        loss_l.append(holder[0])
+        acc_l.append(holder[1])
 
         # Save the model each 5 epochs
         if (ep + 1) % 5 == 0:
             torch.save(model, f"Models/model_parameters_{ep+1}.pt")
 
     print("Finish training")
-    return loss_l
+    return loss_l, acc_l
 
-n_epochs = 70
-loss = train_loop(n_epochs, model, loss, optimizer)
+if do_training:
+    loss, acc = train_loop(n_epochs, model, loss_fn, optimizer)
 
 
-### Display
-import matplotlib.pyplot as plt
-import numpy as np
+### Display Loss
+if do_training:
+    display_loss_acc(loss, acc, "Classifier_Model")
 
-# Data for plotting
-y = loss
-x = [x for x in range (0, len(loss), 1)]
+### Display Confusion Matrix
+display_conf_m(test_loader, model, "Classifier_Model")
 
-fig, ax = plt.subplots()
-ax.plot(x, y)
-
-ax.set(xlabel='Epoch', ylabel='loss',
-       title='Loss Evolution of the model')
-ax.grid()
-
-fig.savefig("Classifier_Model_Loss.png")
-plt.show()
+### Average acc
+acc_l, avg_acc, std_acc = average_accuracy(model, loss_fn, test, all_images, 5, model_name)
+print(f"The model {model_name}")
+print(f"With the accuracities:\n {acc_l}\n")
+print(f"Has an average accuracy of: {avg_acc}")
+print(f"And a standard deviation of: {std_acc}")
