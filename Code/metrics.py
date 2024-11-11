@@ -36,8 +36,9 @@ def display_loss_acc(loss_l, acc_l, model_name):
     plt.show()
 
 # Creates a confusion matrix of the model
-def display_conf_m(dataloader, model, model_name):
-    model.eval()
+def display_conf_m(dataloader, model, model_name, eval = True):
+    if eval:
+        model.eval()
     TP = 0
     FP = 0
     FN = 0
@@ -70,19 +71,52 @@ def display_conf_m(dataloader, model, model_name):
                 else:
                     FN += 1
     full_conf = np.array([[TP, FP], [FN, TN]])
-
     labels = ["Infected", "Healthy"]
 
     fig, ax = plt.subplots(ncols = 1, figsize = (12, 12))
 
-    
     disp = ConfusionMatrixDisplay(full_conf, display_labels = labels)
-        
     disp.plot(ax=ax)
     disp.ax_.set_title("Confusion Matrix of the Model", fontdict = {"fontsize" : 25}, pad = 1)
 
     fig.savefig(model_name+"_Confusion_Matrix.png")
     plt.show()
+    return
+
+# A variation of the previous one for datasets instead of dataloaders
+def display_conf_m_a_ojo(dataset, model, threshold, model_name):
+    # Distance function
+    TP = 0
+    FN = 0
+    FP = 0
+    TN = 0
+
+    for X, y in dataset:
+        pred = model(X, threshold = threshold) #58 current optimal
+        # Assuming Positive means infected
+        if y[0] == 0 and y[1] == 1: # Pred is positive
+            if pred[0] == 0 and pred[1] == 1:
+                TP += 1
+            if pred[0] == 1 and pred[1] == 0:
+                FN += 1
+        if y[0] == 1 and y[1] == 0: # Pred is negative
+            if pred[0] == 0 and pred[1] == 1:
+                FP += 1
+            if pred[0] == 1 and pred[1] == 0:
+                TN += 1                         
+        
+    full_conf = np.array([[TP, FP], [FN, TN]])
+    labels = ["Infected", "Healthy"]
+
+    fig, ax = plt.subplots(ncols = 1, figsize = (12, 12))
+
+    disp = ConfusionMatrixDisplay(full_conf, display_labels = labels)
+    disp.plot(ax=ax)
+    disp.ax_.set_title("Confusion Matrix of the Model", fontdict = {"fontsize" : 25}, pad = 1)
+
+    fig.savefig(model_name+"_Confusion_Matrix.png")
+    plt.show()
+    return 
 
 # Returns the accuracy on different partititons of data and the average accuracy
 def average_accuracy(model, loss_fn, test, all_images, splits, model_name):
@@ -103,10 +137,3 @@ def average_accuracy(model, loss_fn, test, all_images, splits, model_name):
     avg_acc = sum(acc_l) / len(acc_l)
     std_acc = np.std(acc_l)
     return acc_l, avg_acc, std_acc
-
-    print(f"The model {model_name}")
-    print(f"With the accuracities:\n {acc_l}\n")
-    print(f"Has an average accuracy of: {avg_acc}")
-    print(f"And a standard deviation of: {std_acc}")
-
-
