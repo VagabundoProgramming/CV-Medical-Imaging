@@ -21,12 +21,7 @@ It makes use of three convolutional layers and a linear layer at the end.
 It is complemented with several pooling layers to simplify the result.
 It uses ReLU as the activation function.
 
-With the dataset provided it has a 89.4% accuracy.
-
-## Stochastic Model
-A stochastic model to compare and have as a baseline.
-
-50% accuracy
+With the dataset provided it has a 88% accuracy.
 
 ## "A ojo" Model
 A simple algorithm that reads the image pixels row by row and if a severe difference
