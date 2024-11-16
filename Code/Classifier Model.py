@@ -153,7 +153,7 @@ def train_loop(n_epochs, model, loss, optimizer):
 
         # Save the model each 5 epochs
         if (ep + 1) % 5 == 0:
-            torch.save(model, f"Models/model_parameters_{ep+1}.pt")
+            torch.save(model, f"Models/Classifier_Model_parameters_{ep+1}.pt")
 
     print("Finish training")
     return loss_l, acc_l
@@ -167,7 +167,7 @@ if do_training:
     display_loss_acc(loss, acc, "Classifier_Model")
 
 ### Display Confusion Matrix
-display_conf_m(test_loader, model, "Classifier_Model")
+#display_conf_m(test_loader, model, "Classifier_Model")
 
 ### Average acc
 acc_l, avg_acc, std_acc = average_accuracy(model, loss_fn, test, all_images, 5, model_name)
