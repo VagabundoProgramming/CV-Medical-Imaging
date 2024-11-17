@@ -8,6 +8,17 @@ classify them as either infected or healthy using their medical images.
 For this task we have implemented different models to different degrees of 
 efficiency and accuracy.
 
+## Git Description
+Inside the code folder you will find the files used for this project.
+These include the models labeled accordingly, files to evaluate their
+accuracy and to load data. 
+
+Inside the Models directory we have some models we have made so you can 
+try them yourself without having to train yourself.
+
+Unfortunately we do not provide the QUIRON dataset used for this project 
+due to limitations.
+
 ## Autoencoder Model
 [text here]
 
