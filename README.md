@@ -23,7 +23,7 @@ Then we use a threshold to determine what percentage of images must be
 considered infected to declare the patient as so. To obtain the best
 threshold we have made use of the ROC curve matric. 
 
-The model is accurate in 88% of the patient diagnosis.
+The model has an accuray of 83% in patient diagnosis.
 
 ## "A ojo" Model
 A simple algorithm that reads the image pixels row by row and if a severe difference
