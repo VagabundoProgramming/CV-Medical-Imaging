@@ -9,7 +9,7 @@ from torchvision.utils import make_grid, save_image
 import matplotlib.pyplot as plt
 
 class AE(nn.Module):
-    def __init__(self):
+    def __init__(self, bottleneck=100):
         super(AE, self).__init__()
         # Encoder section
         self.Conv1 = nn.Conv2d(3, 8, 3, padding=1)
@@ -24,10 +24,10 @@ class AE(nn.Module):
         self.Conv4 = nn.Conv2d(32, 64, 3)
         self.Pool4 = nn.MaxPool2d(2, stride=2, return_indices=True)
         self.relu4 = nn.ReLU()
-        self.Linear = nn.Linear(14400, 10)
+        self.Linear = nn.Linear(14400, bottleneck)
         self.relu5 = nn.ReLU()
         # Decoder section
-        self.revLinear = nn.Linear(10, 14400)
+        self.revLinear = nn.Linear(bottleneck, 14400)
         self.relu6 = nn.ReLU()
         self.UnPool1 = nn.MaxUnpool2d(2, stride=2)
         self.revConv1 = nn.ConvTranspose2d(64, 32, 3)
