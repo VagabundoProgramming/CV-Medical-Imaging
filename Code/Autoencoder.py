@@ -8,6 +8,41 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision.utils import make_grid, save_image
 import matplotlib.pyplot as plt
 
+def get_img_paths(images_folder, PatientDiagnosis):
+    images_paths = []
+    patients = np.array(os.listdir(images_folder))
+    df = pd.read_csv(PatientDiagnosis)
+    df = df[df["DENSITAT"] == "NEGATIVA"]
+    pos_folders = np.concatenate((df["CODI"].to_numpy()+"_0", df["CODI"].to_numpy()+"_1"))
+    folders = np.intersect1d(patients, pos_folders)
+    for fold in folders:
+        for name in os.listdir(images_folder + "/" + fold):
+            if name[-3:] == "png":
+                images_paths.append(images_folder + "/" + fold + "/" + name)
+    return images_paths
+
+class Cropped_Patches(Dataset):
+    def __init__(self, images_path, data_type="train"):
+        if data_type == "train":
+            self.img_paths = images_path[:10000]
+        elif data_type == "test":
+            self.img_paths = images_path[-1000:]
+        else:
+            raise TypeError
+
+    def __len__(self):
+        return len(self.img_paths)
+
+    def __getitem__(self, key):
+        name = self.img_paths[key]
+        img = cv2.imread(name)
+        if img.shape != (256, 256, 3):
+            img = cv2.resize(img, (256,256))
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = np.transpose(img, (2, 1, 0))
+        img = torch.from_numpy(img).to(torch.float)
+        return img / 255
+
 class AE(nn.Module):
     def __init__(self, bottleneck=100):
         super(AE, self).__init__()
@@ -80,3 +115,73 @@ class AE(nn.Module):
         x = self.revConv4(x)
         x = self.tanh(x)
         return x
+
+def save_process(img, name):
+    img = torch.transpose(img, 1, 2)
+    save_image(img, "figures/"+name)
+
+def train(model, loader, optimizer, criterion, epoch):
+    loss = 0
+    model.train()
+
+    for batch_features in loader:
+        # load it to the active device
+        batch_features = batch_features.to(device)
+        
+        # reset the gradients back to zero
+        # PyTorch accumulates gradients on subsequent backward passes
+        optimizer.zero_grad()
+        
+        # compute reconstructions
+        outputs = model(batch_features)
+        
+        # compute training reconstruction loss
+        train_loss = criterion(outputs, batch_features)
+        
+        # compute accumulated gradients
+        train_loss.backward()
+        
+        # perform parameter update based on current gradients
+        optimizer.step()
+        
+        # add the mini-batch training loss to epoch loss
+        loss += train_loss.item()
+
+    # compute the epoch training loss
+    loss = loss / len(loader)
+    print("epoch : {}/{}, Train loss = {:.6f}".format(epoch + 1, epochs, loss))
+    if epoch % 1 == 0:
+        save_process(torch.cat(
+            (make_grid(batch_features.detach().cpu().view(-1, 3, 256, 256).transpose(2, 3), nrow=2, normalize = True),
+            make_grid(outputs.detach().cpu().view(-1, 3, 256, 256).transpose(2, 3), nrow=2, normalize = True)),
+            2), "new10_train"+str(epoch)+".png")
+    return loss
+
+def test(model, loader, criterion, epoch):
+    loss = 0
+    model.eval()
+    
+    for batch_features in loader:
+        batch_features = batch_features.to(device)
+
+        with torch.no_grad():
+            outputs = model(batch_features)
+        
+        # compute training reconstruction loss
+        test_loss = criterion(outputs, batch_features)
+ 
+        # add the mini-batch training loss to epoch loss
+        loss += test_loss.item()
+    
+    # compute the epoch test loss
+    loss = loss / len(loader)
+    
+    # display the epoch training loss
+    print("epoch : {}/{}, Test loss = {:.6f}".format(epoch + 1, epochs, loss))
+    if epoch % 1 == 0:
+        save_process(torch.cat(
+            (make_grid(batch_features.detach().cpu().view(-1, 3, 256, 256).transpose(2, 3), nrow=2, normalize = True),
+            make_grid(outputs.detach().cpu().view(-1, 3, 256, 256).transpose(2, 3), nrow=2, normalize = True)),
+            2), "new10_test"+str(epoch)+".png")
+        torch.save(model.state_dict(), "SavedModels/new10_model_epoch"+str(epoch)+".pt")
+    return loss
