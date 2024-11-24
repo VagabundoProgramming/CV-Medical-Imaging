@@ -34,6 +34,11 @@ losses = {"train":[], "test":[]}
 for epoch in range(epochs):
     losses["train"].append(train(model, train_loader, optimizer, criterion, epoch))
     losses["test"].append(test(model, test_loader, criterion, epoch))
+    plt.plot(losses["train"], label="training loss")
+    plt.plot(losses["test"], label="validation loss")
+    plt.savefig("figures/nothing_loss"+str(epoch)+".png")
+    plt.pause(0.0001)
+    plt.clf()
 
 print(losses)
 print("DONE!")
