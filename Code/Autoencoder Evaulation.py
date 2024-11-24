@@ -7,6 +7,7 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from torchvision.utils import make_grid, save_image
 import matplotlib.pyplot as plt
+from Autoencoder import *
 
 #If this cell fails you need to change the runtime of your colab notebook to GPU
 # Go to Runtime -> Change Runtime Type and select GPU
