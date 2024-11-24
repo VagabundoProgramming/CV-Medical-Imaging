@@ -38,80 +38,124 @@ class Cropped_Patches(Dataset):
 
 CP = Cropped_Patches("Annotated", "HP_WSI-CoordAnnotatedPatches.xlsx")
 
-class AE(nn.Module):
-    def __init__(self, bottleneck=100):
-        super(AE, self).__init__()
-        # Encoder section
-        self.Conv1 = nn.Conv2d(3, 8, 3, padding=1)
-        self.Pool1 = nn.MaxPool2d(2, stride=2, return_indices=True)
-        self.relu1 = nn.ReLU()
-        self.Conv2 = nn.Conv2d(8, 16, 3, padding=1)
-        self.Pool2 = nn.MaxPool2d(2, stride=2, return_indices=True)
-        self.relu2 = nn.ReLU()
-        self.Conv3 = nn.Conv2d(16, 32, 3, padding=1)
-        self.Pool3 = nn.MaxPool2d(2, stride=2, return_indices=True)
-        self.relu3 = nn.ReLU()
-        self.Conv4 = nn.Conv2d(32, 64, 3)
-        self.Pool4 = nn.MaxPool2d(2, stride=2, return_indices=True)
-        self.relu4 = nn.ReLU()
-        self.Linear = nn.Linear(14400, bottleneck)
-        self.relu5 = nn.ReLU()
-        # Decoder section
-        self.revLinear = nn.Linear(bottleneck, 14400)
-        self.relu6 = nn.ReLU()
-        self.UnPool1 = nn.MaxUnpool2d(2, stride=2)
-        self.revConv1 = nn.ConvTranspose2d(64, 32, 3)
-        self.relu7 = nn.ReLU()
-        self.UnPool2 = nn.MaxUnpool2d(2, stride=2)
-        self.revConv2 = nn.ConvTranspose2d(32, 16, 3, padding=1)
-        self.relu8 = nn.ReLU()
-        self.UnPool3 = nn.MaxUnpool2d(2, stride=2)
-        self.revConv3 = nn.ConvTranspose2d(16, 8, 3, padding=1)
-        self.relu9 = nn.ReLU()
-        self.UnPool4 = nn.MaxUnpool2d(2, stride=2)
-        self.revConv4 = nn.ConvTranspose2d(8, 3, 3, padding=1)
-        self.tanh = nn.Tanh()
-
-
-    def forward(self, x):
-        batch_size = x.shape[0]
-        #Encoder - Conv
-        x = self.Conv1(x)
-        x, indices1 = self.Pool1(x)
-        x = self.relu1(x)
-        x = self.Conv2(x)
-        x, indices2 = self.Pool2(x)
-        x = self.relu2(x)
-        x = self.Conv3(x)
-        x, indices3 = self.Pool3(x)
-        x = self.relu3(x)
-        x = self.Conv4(x)
-        x, indices4 = self.Pool4(x)
-        x = self.relu4(x)
-        #Encoder - Linear
-        x = torch.reshape(x, (batch_size, 14400))
-        x = self.Linear(x)
-        x = self.relu5(x)
-        #Decoder - Linear
-        x = self.revLinear(x)
-        x = self.relu6(x)
-        x = torch.reshape(x, (batch_size, 64, 15, 15))
-        #Decoder - Conv
-        x = self.UnPool1(x, indices4)
-        x = self.revConv1(x)
-        x = self.relu7(x)
-        x = self.UnPool2(x, indices3)
-        x = self.revConv2(x)
-        x = self.relu8(x)
-        x = self.UnPool3(x, indices2)
-        x = self.revConv3(x)
-        x = self.relu9(x)
-        x = self.UnPool4(x, indices1)
-        x = self.revConv4(x)
-        x = self.tanh(x)
-        return x
-        
 model = AE(bottleneck=100).to(device)
-model.load_state_dict(torch.load("SavedModels/model_epoch52.pt", weights_only=True))
+model.load_state_dict(torch.load("SavedModels/model_100_epoch52.pt", weights_only=True))
+#Since we trained different models we saved each model with its bottleneck on its name
+#Therefore in this case the _100_ refers to a bottleneck of 100 neuron
+#Remind to change its bottleneck to the one referred on its name
 #Best model 52
-model.eval()
+
+criterion = nn.MSELoss()
+
+res = []
+for i, (x, l) in enumerate(CP):
+    x1 = x / 255
+    x = x1.unsqueeze(0)
+    x = np.transpose(x, (0, 3, 2, 1))
+    x = x.to(device)
+    with torch.no_grad():
+       x2 = (np.transpose(model(x).to("cpu").squeeze(), (2, 1, 0)))
+    er = criterion(x1, x2)
+    res.append([er, l])
+res = np.array(res)
+
+with_P = res[res[:,1] == 1][:,0]
+without_P = res[res[:,1] == -1][:,0]
+unknown_P = res[res[:,1] == 0][:,0]
+
+dist = [with_P, without_P, unknown_P]
+
+labels = ["with_P", "without_P", "unknown_P"]
+
+fig, ax = plt.subplots()
+ax.set_ylabel('Density Pylori')
+ 
+bplot = ax.boxplot(dist, patch_artist=True,)
+plt.xticks([1, 2, 3], labels)
+plt.show()
+
+best_acc = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+best_F1 = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+for threshold in np.linspace(with_P.mean(), without_P.mean(), 100):
+    P = res[res[:,0] > threshold]
+    N = res[res[:,0] <= threshold]
+    TP = len(P[P[:,1] == 1])
+    FN = len(N[N[:,1] == 1])
+    FP = len(P[P[:,1] == -1])
+    TN = len(N[N[:,1] == -1])
+    acc = (TP+TN)/(TP+FN+FP+TN) #Accuracy
+    if TP+FP != 0: pre = TP/(TP+FP) #Precision
+    else: pre = 0
+    if TP+FN != 0: rec = TP/(TP+FN) #Recall - Sensitivity
+    else: rec = 0
+    if TN+FP != 0: spe = TN/(TN+FP) #Specificity
+    else: spe = 0
+    if pre+rec != 0: F1 = (2*pre*rec)/(pre+rec) #F1 Score
+    else: F1 = 0
+    if acc > best_acc[1]:
+        best_acc = [threshold, acc, pre, rec, spe, F1]
+    if F1 > best_F1[5]:
+        best_F1 = [threshold, acc, pre, rec, spe, F1]
+    #print("Accuracy:", "%.3f"%acc, "\tPrecision:", "%.3f"%pre, "\tRecall:", "%.3f"%rec, "\tSpecificity:", "%.3f"%spe, "\tF1 Score:", "%.3f"%F1)
+#If we take as everyting without Pypol then our accuracy grew up to 0.865
+print("\nBest Accuracy Threshold:", best_acc[0], "\n\tAccuracy:", "%.3f"%best_acc[1], "\tPrecision:", "%.3f"%best_acc[2], "\tRecall:", "%.3f"%best_acc[3], "\tSpecificity:", "%.3f"%best_acc[4], "\tF1 Score:", "%.3f"%best_acc[5])
+print("Best F1 Score Threshold:", best_F1[0], "\n\tAccuracy:", "%.3f"%best_F1[1], "\tPrecision:", "%.3f"%best_F1[2], "\tRecall:", "%.3f"%best_F1[3], "\tSpecificity:", "%.3f"%best_F1[4], "\tF1 Score:", "%.3f"%best_F1[5])
+
+PatientDiagnosis = "PatientDiagnosis.csv"
+images_folder = "HoldOut"
+
+df = pd.read_csv(PatientDiagnosis)
+df = df.to_numpy()
+patients = []
+for i, (fold, diagnosis) in enumerate(df):
+    print(str(i)+"/"+str(df.shape[0]))
+    patches_er = []
+    for added in ["_0", "_1"]:
+        if not os.path.exists(images_folder+"/"+fold+added):
+            continue
+        for name in os.listdir(images_folder+"/"+fold+added):
+            if name[-3:] == ".db":
+                continue
+            img = cv2.imread(images_folder+"/"+fold+added+"/"+name)
+            if img.shape != (256, 256, 3):
+                img = cv2.resize(img, (256, 256))
+            img = np.transpose(cv2.cvtColor(img, cv2.COLOR_BGR2RGB) / 255, (2, 1, 0))
+            img = torch.from_numpy(img).to(device, dtype=torch.float).unsqueeze(0)
+            er = criterion(model(img), x).to("cpu").detach().item()
+            patches_er.append(er)
+    if patches_er != []:
+        patients.append(np.array(patches_er).mean())
+    else:
+        patients.append("-")
+patients = np.array(patients)
+df = df[patients != "-"]
+patients = patients[patients != "-"]
+patients = patients.astype("float64")
+
+best_acc = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+best_F1 = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+for threshold in np.linspace(patients.min(), patients.max(), 1000):
+    P = df[patients > threshold]
+    N = df[patients <= threshold]
+    TP = len(P[P[:,1] != "NEGATIVA"])
+    FN = len(N[N[:,1] != "NEGATIVA"])
+    FP = len(P[P[:,1] == "NEGATIVA"])
+    TN = len(N[N[:,1] == "NEGATIVA"])
+    if TP+FP != 0: acc = (TP+TN)/(TP+FN+FP+TN) #Accuracy
+    else: acc = 0
+    if TP+FP != 0: pre = TP/(TP+FP) #Precision
+    else: pre = 0
+    if TP+FN != 0: rec = TP/(TP+FN) #Recall - Sensitivity
+    else: rec = 0
+    if TN+FP != 0: spe = TN/(TN+FP) #Specificity
+    else: spe = 0
+    if pre+rec != 0: F1 = (2*pre*rec)/(pre+rec) #F1 Score
+    else: F1 = 0
+    if acc > best_acc[1]:
+        best_acc = [threshold, acc, pre, rec, spe, F1]
+    if F1 > best_F1[5]:
+        best_F1 = [threshold, acc, pre, rec, spe, F1]
+    #print("Accuracy:", "%.3f"%acc, "\tPrecision:", "%.3f"%pre, "\tRecall:", "%.3f"%rec, "\tSpecificity:", "%.3f"%spe, "\tF1 Score:", "%.3f"%F1)
+print("\nBest Accuracy Threshold:", best_acc[0], "\n\tAccuracy:", "%.3f"%best_acc[1], "\tPrecision:", "%.3f"%best_acc[2], "\tRecall:", "%.3f"%best_acc[3], "\tSpecificity:", "%.3f"%best_acc[4], "\tF1 Score:", "%.3f"%best_acc[5])
+print("Best F1 Score Threshold:", best_F1[0], "\n\tAccuracy:", "%.3f"%best_F1[1], "\tPrecision:", "%.3f"%best_F1[2], "\tRecall:", "%.3f"%best_F1[3], "\tSpecificity:", "%.3f"%best_F1[4], "\tF1 Score:", "%.3f"%best_F1[5])
