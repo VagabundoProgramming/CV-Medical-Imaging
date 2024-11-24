@@ -97,7 +97,7 @@ for threshold in np.linspace(with_P.mean(), without_P.mean(), 100):
     if F1 > best_F1[5]:
         best_F1 = [threshold, acc, pre, rec, spe, F1]
     #print("Accuracy:", "%.3f"%acc, "\tPrecision:", "%.3f"%pre, "\tRecall:", "%.3f"%rec, "\tSpecificity:", "%.3f"%spe, "\tF1 Score:", "%.3f"%F1)
-#If we take as everyting without Pypol then our accuracy grew up to 0.865
+#If we take as everyting without Pylori then our accuracy grew up to 0.865
 print("\nBest Accuracy Threshold:", best_acc[0], "\n\tAccuracy:", "%.3f"%best_acc[1], "\tPrecision:", "%.3f"%best_acc[2], "\tRecall:", "%.3f"%best_acc[3], "\tSpecificity:", "%.3f"%best_acc[4], "\tF1 Score:", "%.3f"%best_acc[5])
 print("Best F1 Score Threshold:", best_F1[0], "\n\tAccuracy:", "%.3f"%best_F1[1], "\tPrecision:", "%.3f"%best_F1[2], "\tRecall:", "%.3f"%best_F1[3], "\tSpecificity:", "%.3f"%best_F1[4], "\tF1 Score:", "%.3f"%best_F1[5])
 
