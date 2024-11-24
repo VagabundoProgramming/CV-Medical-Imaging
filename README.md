@@ -26,10 +26,10 @@ detected as so. It is a symmetrical model.It is composed of 4 convolutional
 layers, 4 max pooling layers and the corresponding 4 transpose convolutional 
 layers and 4 unpooling layers. 
 
-The best patch accuracy is 86.4%.
+The best patch accuracy is 86.4%.<br>
 The best patch F1 Score is 44.7%.
 
-The best patient diagnosis accuracy is 60.3%.
+The best patient diagnosis accuracy is 60.3%.<br>
 The best patient diagnosis F1 Score is 67.1%.
 
 ## Classifier
