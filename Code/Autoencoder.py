@@ -8,6 +8,7 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision.utils import make_grid, save_image
 import matplotlib.pyplot as plt
 
+#Because it uses a different amount of images per patient we preprocess the direct path to each image and save it into a single list
 def get_img_paths(images_folder, PatientDiagnosis):
     images_paths = []
     patients = np.array(os.listdir(images_folder))
@@ -21,12 +22,14 @@ def get_img_paths(images_folder, PatientDiagnosis):
                 images_paths.append(images_folder + "/" + fold + "/" + name)
     return images_paths
 
+# The main data set with the images_paths
 class Cropped_Patches(Dataset):
     def __init__(self, images_path, data_type="train"):
         if data_type == "train":
-            self.img_paths = images_path[:10000]
+            self.img_paths = images_path[:50000] #Change parameter if wanna change the training set
         elif data_type == "test":
-            self.img_paths = images_path[-1000:]
+            self.img_paths = images_path[-5000:] #Change parameter if wanna change the validation set
+            #try to parametrise this paramters so images don't ended up in both sets.
         else:
             raise TypeError
 
@@ -43,6 +46,7 @@ class Cropped_Patches(Dataset):
         img = torch.from_numpy(img).to(torch.float)
         return img / 255
 
+#The main model with changing bottleneck
 class AE(nn.Module):
     def __init__(self, bottleneck=100):
         super(AE, self).__init__()
@@ -150,7 +154,7 @@ def train(model, loader, optimizer, criterion, epoch):
     # compute the epoch training loss
     loss = loss / len(loader)
     print("epoch : {}/{}, Train loss = {:.6f}".format(epoch + 1, epochs, loss))
-    if epoch % 1 == 0:
+    if epoch % 1 == 0: #Every spam of epochs it will print the images and its loss, paramter able to change if you don't want it to be each epoch
         save_process(torch.cat(
             (make_grid(batch_features.detach().cpu().view(-1, 3, 256, 256).transpose(2, 3), nrow=2, normalize = True),
             make_grid(outputs.detach().cpu().view(-1, 3, 256, 256).transpose(2, 3), nrow=2, normalize = True)),
@@ -178,7 +182,7 @@ def test(model, loader, criterion, epoch):
     
     # display the epoch training loss
     print("epoch : {}/{}, Test loss = {:.6f}".format(epoch + 1, epochs, loss))
-    if epoch % 1 == 0:
+    if epoch % 1 == 0: #Every spam of epochs it will print the images, its loss and save the model, paramter able to change if you don't want it to be each epoch
         save_process(torch.cat(
             (make_grid(batch_features.detach().cpu().view(-1, 3, 256, 256).transpose(2, 3), nrow=2, normalize = True),
             make_grid(outputs.detach().cpu().view(-1, 3, 256, 256).transpose(2, 3), nrow=2, normalize = True)),
@@ -186,7 +190,8 @@ def test(model, loader, criterion, epoch):
         torch.save(model.state_dict(), "SavedModels/new10_model_epoch"+str(epoch)+".pt")
     return loss
 
-def calculate_patient_error(images_folder, PatientDiagnosis, model)
+# Function to calculate the mean error of each patient based on its own images
+def calculate_patient_error(images_folder, PatientDiagnosis, model, criterion=nn.MSELoss())
     df = pd.read_csv(PatientDiagnosis)
     df = df.to_numpy()
     patients = []
