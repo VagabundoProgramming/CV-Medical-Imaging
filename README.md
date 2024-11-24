@@ -20,8 +20,17 @@ Unfortunately we do not provide the QUIRON dataset used for this project
 due to limitations.
 
 ## Autoencoder Model
-[text here]
+An Autoencoder trained with healthy patches so that the reconstruction 
+error on infected images is significant enough so that it can be 
+detected as so. It is a symmetrical model.It is composed of 4 convolutional 
+layers, 4 max pooling layers and the corresponding 4 transpose convolutional 
+layers and 4 unpooling layers. 
 
+The best patch accuracy is 86.4%.
+The best patch F1 Score is 44.7%.
+
+The best patient diagnosis accuracy is 60.3%.
+The best patient diagnosis F1 Score is 67.1%.
 
 ## Classifier
 A simple convolutional neural network. 
