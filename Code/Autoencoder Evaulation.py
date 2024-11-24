@@ -45,8 +45,8 @@ model.load_state_dict(torch.load("SavedModels/model_100_epoch52.pt", weights_onl
 #Remind to change its bottleneck to the one referred on its name
 #Best model 52
 
+#For each image in the csv we calculate the error from the original image and save it with its presence
 criterion = nn.MSELoss()
-
 res = []
 for i, (x, l) in enumerate(CP):
     x1 = x / 255
@@ -59,21 +59,22 @@ for i, (x, l) in enumerate(CP):
     res.append([er, l])
 res = np.array(res)
 
+#We divide this sets into three sets since there are only 3 uniques values
 with_P = res[res[:,1] == 1][:,0]
 without_P = res[res[:,1] == -1][:,0]
 unknown_P = res[res[:,1] == 0][:,0]
 
+# Ploting the box plot of the sets
 dist = [with_P, without_P, unknown_P]
-
 labels = ["with_P", "without_P", "unknown_P"]
-
 fig, ax = plt.subplots()
 ax.set_ylabel('Density Pylori')
- 
 bplot = ax.boxplot(dist, patch_artist=True,)
 plt.xticks([1, 2, 3], labels)
 plt.show()
 
+# With the two main sets we calculate different thresholds to know the best case posible
+# We discard the unknown since there are only 4 samples.
 best_acc = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 best_F1 = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 for threshold in np.linspace(with_P.mean(), without_P.mean(), 100):
@@ -101,10 +102,9 @@ for threshold in np.linspace(with_P.mean(), without_P.mean(), 100):
 print("\nBest Accuracy Threshold:", best_acc[0], "\n\tAccuracy:", "%.3f"%best_acc[1], "\tPrecision:", "%.3f"%best_acc[2], "\tRecall:", "%.3f"%best_acc[3], "\tSpecificity:", "%.3f"%best_acc[4], "\tF1 Score:", "%.3f"%best_acc[5])
 print("Best F1 Score Threshold:", best_F1[0], "\n\tAccuracy:", "%.3f"%best_F1[1], "\tPrecision:", "%.3f"%best_F1[2], "\tRecall:", "%.3f"%best_F1[3], "\tSpecificity:", "%.3f"%best_F1[4], "\tF1 Score:", "%.3f"%best_F1[5])
 
-PatientDiagnosis = "PatientDiagnosis.csv"
-images_folder = "HoldOut"
 patinets = calculate_patient_error("HoldOut", "PatientDiagnosis.csv", model)
 
+# Same that has done before but with the patainet mean error
 best_acc = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 best_F1 = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
