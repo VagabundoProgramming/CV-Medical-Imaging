@@ -27,9 +27,6 @@ class Cropped_Patches(Dataset):
             name = images_folder + "/" + df[i,0] + "_" + str(df[i,1]) + "/" + "0"*(5-len(str(df[i,2]))) + str(df[i,2]) + ".png"
             self.img_paths[i] = name
             self.presence[i] = df[i,-1]
-            #Only the data with Presence has Augmented images
-            #if os.path.exists(name[:-4]+"_Aug1" + ".png"):
-            #    print(True)
 
     def __len__(self):
         return len(self.img_paths)
