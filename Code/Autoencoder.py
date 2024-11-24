@@ -185,3 +185,32 @@ def test(model, loader, criterion, epoch):
             2), "new10_test"+str(epoch)+".png")
         torch.save(model.state_dict(), "SavedModels/new10_model_epoch"+str(epoch)+".pt")
     return loss
+
+def calculate_patient_error(images_folder, PatientDiagnosis, model)
+    df = pd.read_csv(PatientDiagnosis)
+    df = df.to_numpy()
+    patients = []
+    for i, (fold, diagnosis) in enumerate(df):
+        print(str(i)+"/"+str(df.shape[0]))
+        patches_er = []
+        for added in ["_0", "_1"]:
+            if not os.path.exists(images_folder+"/"+fold+added):
+                continue
+            for name in os.listdir(images_folder+"/"+fold+added):
+                if name[-3:] == ".db":
+                    continue
+                img = cv2.imread(images_folder+"/"+fold+added+"/"+name)
+                if img.shape != (256, 256, 3):
+                    img = cv2.resize(img, (256, 256))
+                img = np.transpose(cv2.cvtColor(img, cv2.COLOR_BGR2RGB) / 255, (2, 1, 0))
+                img = torch.from_numpy(img).to(device, dtype=torch.float).unsqueeze(0)
+                er = criterion(model(img), x).to("cpu").detach().item()
+                patches_er.append(er)
+        if patches_er != []:
+            patients.append(np.array(patches_er).mean())
+        else:
+            patients.append("-")
+    patients = np.array(patients)
+    df = df[patients != "-"]
+    patients = patients[patients != "-"]
+    patients = patients.astype("float64")
